@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 import mysql.connector
 import datetime
 
@@ -16,6 +16,13 @@ app = FastAPI()
 async def root():
     return "welcome!"
 
+@app.post("/users")
+async def insert_user(nome: str, nome_usuario: str, email: str, senha: str):
+    mycursor = mydb.cursor()
+    query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando confirmacao', %s)"
+    mycursor.execute(query, (nome, nome_usuario, email, senha, datetime.datetime.now()))
+    mydb.commit()
+    raise HTTPException(status_code=202, detail="Usuário cadastrado com sucesso")
 
 @app.get("/users/{email}/{senha}")
 async def check_users(email: str, senha: str):
@@ -24,14 +31,12 @@ async def check_users(email: str, senha: str):
     mycursor.execute(query, (email,))
     linha = mycursor.fetchall()
 
-    if linha is None:
-        return {"message": "Usuário não existe"}
+    if not linha:
+        raise HTTPException(status_code=404, detail="Usuário não existe")
 
     for informacao in linha:
         password = informacao[3]
         if password != senha:
-            return {"message": "Senha incorreta"}
+            raise HTTPException(status_code=401, detail="Senha incorreta")
 
-    return {"message": "Login bem-sucedido"}
-
-
+    raise HTTPException(status_code=202, detail="Login realizado com sucesso")
