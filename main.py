@@ -64,6 +64,13 @@ async def insert_user(nome: str, nome_usuario: str, email: str, senha: str):
         else:
             raise HTTPException(status_code=422, detail="Nome de usuário já cadastrado")
 
+@app.post("/users")
+async def insert_user(nome: str, nome_usuario: str, email: str, senha: str):
+    mycursor = mydb.cursor()
+    query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando confirmacao', %s)"
+    mycursor.execute(query, (nome, nome_usuario, email, senha, datetime.datetime.now()))
+    mydb.commit()
+    raise HTTPException(status_code=202, detail="Usuário cadastrado com sucesso")
 
 @app.get("/users/{email}/{senha}")
 async def check_users(email: str, senha: str):
