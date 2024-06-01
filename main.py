@@ -21,37 +21,39 @@ async def root():
     return {"message": "Welcome!"}
 
 @app.post("/users")
-async def insert_user(nome: str, nome_usuario: str, email: str, senha: str):
-    mycursor = mydb.cursor()
-    query = "SELECT * FROM usuario WHERE email = %s OR nome_usuario = %s"
-    mycursor.execute(query, (email, nome_usuario))
-    linha = mycursor.fetchall()
-    if not linha:
-        hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
-        hashed_password_str = hashed_password.decode('utf-8')
-        verification_code = random.randint(100000, 999999)
-        query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao, codigo_verificacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando confirmacao', %s, %s)"
-        mycursor.execute(query, (nome, nome_usuario, email, hashed_password_str, datetime.datetime.now(), verification_code))
-        mydb.commit()
+async def insert_user(nome: str, nome_usuario: str, email: str, senha: str, confirma_senha: str):
+    if senha == confirma_senha:
+        mycursor = mydb.cursor()
+        query = "SELECT * FROM usuario WHERE email = %s OR nome_usuario = %s"
+        mycursor.execute(query, (email, nome_usuario))
+        linha = mycursor.fetchall()
+        if not linha:
+            hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+            hashed_password_str = hashed_password.decode('utf-8')
+            verification_code = random.randint(100000, 999999)
+            query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao, codigo_verificacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando confirmacao', %s, %s)"
+            mycursor.execute(query, (nome, nome_usuario, email, hashed_password_str, datetime.datetime.now(), verification_code))
+            mydb.commit()
 
 
-        servidor_email = smtplib.SMTP('smtp.gmail.com', 587)
-        servidor_email.starttls()
-        servidor_email.login('studynestapp@gmail.com', 'fhyh vikm mpph yhdl')
-        remetente = 'studynestapp@gmail.com'
-        destinatario = [email]
-        conteudo = (f'Olá, seja bem vindo(a)!\n'
-                    f'Este é o seu código de verificação: {verification_code}.')
+            servidor_email = smtplib.SMTP('smtp.gmail.com', 587)
+            servidor_email.starttls()
+            servidor_email.login('studynestapp@gmail.com', 'fhyh vikm mpph yhdl')
+            remetente = 'studynestapp@gmail.com'
+            destinatario = [email]
+            conteudo = (f'Olá, seja bem vindo(a)!\n'
+                        f'Este é o seu código de verificação: {verification_code}.')
 
-        msg = MIMEText(conteudo, _charset='UTF-8')
-        msg['Subject'] = 'Boas vindas e código de verificação'
-        msg['From'] = remetente
-        msg['To'] = ', '.join(destinatario)
+            msg = MIMEText(conteudo, _charset='UTF-8')
+            msg['Subject'] = 'Boas vindas e código de verificação'
+            msg['From'] = remetente
+            msg['To'] = ', '.join(destinatario)
 
-        servidor_email.sendmail(remetente, destinatario, msg.as_string())
+            servidor_email.sendmail(remetente, destinatario, msg.as_string())
 
-        raise HTTPException(status_code=202, detail="Usuário cadastrado com sucesso")
-
+            raise HTTPException(status_code=202, detail="Usuário cadastrado com sucesso")
+    else:
+        raise HTTPException(status_code=422, detail="As senhas não são iguais")
 
     for informacao in linha:
         bd_email = informacao[2]
