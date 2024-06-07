@@ -121,3 +121,30 @@ async def send_email(email: str, typeofmessage: str):
             servidor_email.sendmail(remetente, destinatario, msg.as_string())
 
             raise HTTPException(status_code=202, detail="Email enviado com sucesso")
+
+@app.get("/code/{email}/{code}")
+async def verify_code(email: str, code: int):
+    mycursor = mydb.cursor()
+    query = "SELECT * FROM usuario WHERE email = %s"
+    mycursor.execute(query, (email,))
+    linha = mycursor.fetchall()
+
+    for informacao in linha:
+        bd_code = informacao[8]
+        if code == bd_code:
+            raise HTTPException(status_code=202, detail="Código correto")
+        else:
+            raise HTTPException(status_code=422, detail="Código incorreto")
+
+@app.post("/newpassword")
+async def new_password(email: str, senha: str, confirma_senha: str):
+    if senha == confirma_senha:
+        mycursor = mydb.cursor()
+        hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
+        hashed_password_str = hashed_password.decode('utf-8')
+        query = "UPDATE usuario SET senha = %s WHERE email = %s"
+        mycursor.execute(query, (hashed_password_str, email))
+        mydb.commit()
+        raise HTTPException(status_code=202, detail="Senha atualizada com sucesso")
+    else:
+        raise HTTPException(status_code=422, detail="As senhas não são iguais")
