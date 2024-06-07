@@ -18,7 +18,7 @@ app = FastAPI()
 
 @app.get("/")
 async def root():
-    return {"message": "Welcome!"}
+    return {"message": "welcome!"}
 
 @app.post("/users")
 async def insert_user(nome: str, nome_usuario: str, email: str, senha: str, confirma_senha: str):
@@ -83,3 +83,41 @@ async def check_users(email: str, senha: str):
             raise HTTPException(status_code=401, detail="Senha incorreta")
 
     raise HTTPException(status_code=202, detail="Login realizado com sucesso")
+
+@app.post("/sendemail")
+async def send_email(email: str, typeofmessage: str):
+    mycursor = mydb.cursor()
+    query = "SELECT * FROM usuario WHERE email = %s"
+    mycursor.execute(query, (email,))
+    linha = mycursor.fetchall()
+
+    if not linha:
+        raise HTTPException(status_code=404, detail="Email não cadastrado")
+
+    verification_code = random.randint(100000, 999999)
+
+    query = "UPDATE usuario SET codigo_verificacao = %s WHERE email = %s"
+    mycursor.execute(query, (verification_code, email))
+    mydb.commit()
+
+    servidor_email = smtplib.SMTP('smtp.gmail.com', 587)
+    servidor_email.starttls()
+    servidor_email.login('studynestapp@gmail.com', 'fhyh vikm mpph yhdl')
+    remetente = 'studynestapp@gmail.com'
+    destinatario = [email]
+
+    for informacao in linha:
+        bd_nome = informacao[0]
+
+        if typeofmessage == "recover_password":
+            conteudo = (f'Olá, {bd_nome}!\n'
+                        f'Codigo de recuperação de senha: {verification_code}.\n'
+                        f'Se tiver algum problema, entre em contato conosco!\n')
+            msg = MIMEText(conteudo, _charset='UTF-8')
+            msg['Subject'] = 'Recuperação de senha'
+            msg['From'] = remetente
+            msg['To'] = ', '.join(destinatario)
+
+            servidor_email.sendmail(remetente, destinatario, msg.as_string())
+
+            raise HTTPException(status_code=202, detail="Email enviado com sucesso")
