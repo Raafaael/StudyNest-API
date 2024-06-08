@@ -31,7 +31,7 @@ async def insert_user(nome: str, nome_usuario: str, email: str, senha: str, conf
             hashed_password = bcrypt.hashpw(senha.encode('utf-8'), bcrypt.gensalt())
             hashed_password_str = hashed_password.decode('utf-8')
             verification_code = random.randint(100000, 999999)
-            query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao, codigo_verificacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando confirmacao', %s, %s)"
+            query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao, codigo_verificacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando ativacao', %s, %s)"
             mycursor.execute(query, (nome, nome_usuario, email, hashed_password_str, datetime.datetime.now(), verification_code))
             mydb.commit()
 
@@ -83,7 +83,7 @@ async def check_users(email: str, senha: str):
         if not bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')):
             raise HTTPException(status_code=401, detail="Senha incorreta")
 
-        if bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')) == password and user_status != "aguardando confirmacao":
+        if bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')) and user_status != "aguardando ativacao":
             raise HTTPException(status_code=202, detail="Login realizado com sucesso")
         else:
             raise HTTPException(status_code=422, detail="Conta não ativada. Ative sua conta com o código enviado por email para prosseguir")
