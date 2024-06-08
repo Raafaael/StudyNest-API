@@ -79,10 +79,14 @@ async def check_users(email: str, senha: str):
 
     for informacao in linha:
         password = informacao[3]
+        user_status = informacao[6]
         if not bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')):
             raise HTTPException(status_code=401, detail="Senha incorreta")
 
-    raise HTTPException(status_code=202, detail="Login realizado com sucesso")
+        if bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')) == password and user_status != "aguardando confirmacao":
+            raise HTTPException(status_code=202, detail="Login realizado com sucesso")
+        else:
+            raise HTTPException(status_code=422, detail="Conta não ativada. Ative sua conta com o código enviado por email para prosseguir")
 
 @app.post("/sendemail")
 async def send_email(email: str, typeofmessage: str):
@@ -119,8 +123,19 @@ async def send_email(email: str, typeofmessage: str):
             msg['To'] = ', '.join(destinatario)
 
             servidor_email.sendmail(remetente, destinatario, msg.as_string())
-
             raise HTTPException(status_code=202, detail="Email enviado com sucesso")
+        elif typeofmessage == "activate_account":
+            conteudo = (f'Olá, {bd_nome}!\n'
+                        f'Codigo para ativar sua conta: {verification_code}.\n'
+                        f'Se tiver algum problema, entre em contato conosco!\n')
+            msg = MIMEText(conteudo, _charset='UTF-8')
+            msg['Subject'] = 'Ativação da conta'
+            msg['From'] = remetente
+            msg['To'] = ', '.join(destinatario)
+
+            servidor_email.sendmail(remetente, destinatario, msg.as_string())
+            raise HTTPException(status_code=202, detail="Email enviado com sucesso")
+
 
 @app.get("/code/{email}/{code}")
 async def verify_code(email: str, code: int):
@@ -131,10 +146,21 @@ async def verify_code(email: str, code: int):
 
     for informacao in linha:
         bd_code = informacao[8]
-        if code == bd_code:
-            raise HTTPException(status_code=202, detail="Código correto")
+        bd_user_status = informacao[6]
+
+        if bd_user_status == "ativo":
+            if code == bd_code:
+                raise HTTPException(status_code=202, detail="Código correto")
+            else:
+                raise HTTPException(status_code=401, detail="Código incorreto")
         else:
-            raise HTTPException(status_code=422, detail="Código incorreto")
+            if code == bd_code:
+                query = "UPDATE usuario SET status = %s WHERE email = %s"
+                mycursor.execute(query, ('ativo', email))
+                mydb.commit()
+                raise HTTPException(status_code=202, detail="Código correto")
+            else:
+                raise HTTPException(status_code=401, detail="Código incorreto")
 
 @app.post("/newpassword")
 async def new_password(email: str, senha: str, confirma_senha: str):
