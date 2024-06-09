@@ -174,3 +174,20 @@ async def new_password(email: str, senha: str, confirma_senha: str):
         raise HTTPException(status_code=202, detail="Senha atualizada com sucesso")
     else:
         raise HTTPException(status_code=422, detail="As senhas não são iguais")
+
+@app.get("/disciplinas")
+async def get_disciplinas():
+    mycursor = mydb.cursor()
+    query = "SELECT codigo, disciplina FROM disciplina"
+    mycursor.execute(query)
+    disciplinas = mycursor.fetchall()
+    
+    codigos_unicos = set()
+    result = []
+    
+    for codigo, disciplina in disciplinas:
+        if codigo not in codigos_unicos:
+            codigos_unicos.add(codigo)
+            result.append(f"{codigo}/{disciplina}")
+
+    return result
