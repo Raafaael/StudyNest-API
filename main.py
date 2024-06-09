@@ -192,3 +192,17 @@ async def get_disciplinas():
             result.append(f"{codigo}/{disciplina}")
 
     return Response(content=json.dumps(result), media_type="application/json")
+
+@app.get("/turmas/{codigo}")
+async def get_turmas(codigo: str):
+    mycursor = mydb.cursor()
+    query = "SELECT turma FROM disciplina WHERE codigo = %s"
+    mycursor.execute(query, (codigo,))
+    turmas = mycursor.fetchall()
+    
+    if not turmas:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
+    
+    result = [turma[0] for turma in turmas]
+
+    return Response(content=json.dumps(result), media_type="application/json")
