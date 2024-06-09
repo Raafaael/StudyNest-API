@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 import mysql.connector
 import datetime
 import bcrypt
 import smtplib
 from email.mime.text import MIMEText
 import random
+import json
 
 mydb = mysql.connector.connect(
   host="uom.h.filess.io",
@@ -190,4 +191,4 @@ async def get_disciplinas():
             codigos_unicos.add(codigo)
             result.append(f"{codigo}/{disciplina}")
 
-    return result
+    return Response(content=json.dumps(result), media_type="application/json")
