@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Response
+from fastapi import FastAPI, HTTPException, Response, Request
 import mysql.connector
 import datetime
 import bcrypt
@@ -207,3 +207,19 @@ async def get_turmas(codigo_disciplina: str):
     result = [turma[0] for turma in turmas]
 
     return Response(content=json.dumps(result), media_type="application/json")
+
+@app.post("/add_grade")
+async def add_grade(email_usuario: str, codigo_disciplina: str, turma_disciplina: str):
+    try:
+        if not all([email_usuario, codigo_disciplina, turma_disciplina]):
+            raise HTTPException(status_code=400, detail="Todos os campos são obrigatórios")
+
+        mycursor = mydb.cursor()
+        query = "INSERT INTO grade (email_usuario, codigo_disciplina, turma_disciplina) VALUES (%s, %s, %s)"
+        mycursor.execute(query, (email_usuario, codigo_disciplina, turma_disciplina))
+        mydb.commit()
+
+        return {"message": "Dados inseridos com sucesso"}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Erro ao processar a requisição: {str(e)}")
