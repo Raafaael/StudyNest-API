@@ -193,8 +193,9 @@ async def get_disciplinas():
 
     return Response(content=json.dumps(result), media_type="application/json")
 
-@app.get("/turmas/{codigo}")
-async def get_turmas(codigo: str):
+@app.get("/turmas/{codigo_disciplina:path}")
+async def get_turmas(codigo_disciplina: str):
+    codigo = codigo_disciplina.split('/')[0]
     mycursor = mydb.cursor()
     query = "SELECT turma FROM disciplina WHERE codigo = %s"
     mycursor.execute(query, (codigo,))
