@@ -251,3 +251,17 @@ async def add_resumo(email_usuario: str, codigo_disciplina: str, titulo: str, co
     mydb.commit()
 
     raise HTTPException(status_code=201, detail="Resumo criado com sucesso")
+
+@app.get("/disciplinasCadastradas/{email_usuario}")
+async def get_disciplinasCadastradas(email_usuario: str):
+    mycursor = mydb.cursor()
+    query = "SELECT codigo_disciplina FROM grade WHERE email_usuario = %s"
+    mycursor.execute(query, (email_usuario,))
+    disciplinas = mycursor.fetchall()
+
+    if not disciplinas:
+        raise HTTPException(status_code=404, detail="Disciplina não encontrada")
+
+    result = [disciplina[0] for disciplina in disciplinas]
+
+    return Response(content=json.dumps(result), media_type="application/json")
