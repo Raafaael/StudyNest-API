@@ -33,9 +33,9 @@ async def insert_user(nome: str, nome_usuario: str, email: str, senha: str, conf
             hashed_password_str = hashed_password.decode('utf-8')
             verification_code = random.randint(100000, 999999)
             query = "INSERT INTO usuario(nome, nome_usuario, email, senha, papel, status, data_criacao, codigo_verificacao) VALUES(%s, %s, %s, %s, 'usuario', 'aguardando ativacao', %s, %s)"
-            mycursor.execute(query, (nome, nome_usuario, email, hashed_password_str, datetime.datetime.now(), verification_code))
+            mycursor.execute(query, (
+            nome, nome_usuario, email, hashed_password_str, datetime.datetime.now(), verification_code))
             mydb.commit()
-
 
             servidor_email = smtplib.SMTP('smtp.gmail.com', 587)
             servidor_email.starttls()
@@ -87,7 +87,9 @@ async def check_users(email: str, senha: str):
         if bcrypt.checkpw(senha.encode('utf-8'), password.encode('utf-8')) and user_status != "aguardando ativacao":
             raise HTTPException(status_code=202, detail="Login realizado com sucesso")
         else:
-            raise HTTPException(status_code=422, detail="Conta não ativada. Ative sua conta com o código enviado por email para prosseguir")
+            raise HTTPException(status_code=422,
+                                detail="Conta não ativada. Ative sua conta com o código enviado por email para prosseguir")
+
 
 @app.post("/sendemail")
 async def send_email(email: str, typeofmessage: str):
@@ -182,10 +184,10 @@ async def get_disciplinas():
     query = "SELECT codigo, disciplina FROM disciplina"
     mycursor.execute(query)
     disciplinas = mycursor.fetchall()
-    
+
     codigos_unicos = set()
     result = []
-    
+
     for codigo, disciplina in disciplinas:
         if codigo not in codigos_unicos:
             codigos_unicos.add(codigo)
@@ -200,10 +202,10 @@ async def get_turmas(codigo_disciplina: str):
     query = "SELECT turma FROM disciplina WHERE codigo = %s"
     mycursor.execute(query, (codigo,))
     turmas = mycursor.fetchall()
-    
+
     if not turmas:
         raise HTTPException(status_code=404, detail="Disciplina não encontrada")
-    
+
     result = [turma[0] for turma in turmas]
 
     return Response(content=json.dumps(result), media_type="application/json")
@@ -223,3 +225,29 @@ async def add_grade(email_usuario: str, codigo_disciplina: str, turma_disciplina
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Erro ao processar a requisição: {str(e)}")
+
+@app.get("/resumos")
+async def get_resumos():
+    mycursor = mydb.cursor()
+    query = "SELECT DISTINCT disciplina.disciplina, disciplina.codigo, resumo.titulo FROM resumo LEFT JOIN disciplina ON resumo.codigo_disciplina = disciplina.codigo"
+    mycursor.execute(query)
+    resumos = mycursor.fetchall()
+
+    result = []
+
+    for nome_disciplina, codigo_disciplina, titulo in resumos:
+        result.append({"nome_disciplina": nome_disciplina, "codigo_disciplina": codigo_disciplina, "titulo": titulo})
+
+    return Response(content=json.dumps(result), media_type="application/json")
+
+@app.post("/add_resumo")
+async def add_resumo(email_usuario: str, codigo_disciplina: str, titulo: str, conteudo: str):
+    if not all([email_usuario, codigo_disciplina, titulo, conteudo]):
+        raise HTTPException(status_code=400, detail="Todos os campos são obrigatórios")
+
+    mycursor = mydb.cursor()
+    query = "INSERT INTO resumo (email_usuario, codigo_disciplina, titulo, conteudo, data) VALUES (%s, %s, %s, %s, %s)"
+    mycursor.execute(query, (email_usuario, codigo_disciplina, titulo, conteudo, datetime.datetime.now()))
+    mydb.commit()
+
+    raise HTTPException(status_code=201, detail="Resumo criado com sucesso")
