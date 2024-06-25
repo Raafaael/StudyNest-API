@@ -229,14 +229,14 @@ async def add_grade(email_usuario: str, codigo_disciplina: str, turma_disciplina
 @app.get("/resumos")
 async def get_resumos():
     mycursor = mydb.cursor()
-    query = "SELECT DISTINCT disciplina.disciplina, disciplina.codigo, resumo.titulo FROM resumo LEFT JOIN disciplina ON resumo.codigo_disciplina = disciplina.codigo"
+    query = "SELECT DISTINCT disciplina.disciplina, disciplina.codigo, resumo.titulo, resumo.conteudo FROM resumo LEFT JOIN disciplina ON resumo.codigo_disciplina = disciplina.codigo"
     mycursor.execute(query)
     resumos = mycursor.fetchall()
 
     result = []
 
-    for nome_disciplina, codigo_disciplina, titulo in resumos:
-        result.append({"nome_disciplina": nome_disciplina, "codigo_disciplina": codigo_disciplina, "titulo": titulo})
+    for nome_disciplina, codigo_disciplina, titulo, conteudo in resumos:
+        result.append({"nome_disciplina": nome_disciplina, "codigo_disciplina": codigo_disciplina, "titulo": titulo, "conteudo": conteudo})
 
     return Response(content=json.dumps(result), media_type="application/json")
 
