@@ -247,7 +247,8 @@ async def add_resumo(email_usuario: str, codigo_disciplina: str, titulo: str, co
 
     mycursor = mydb.cursor()
     query = "INSERT INTO resumo (email_usuario, codigo_disciplina, titulo, conteudo, data) VALUES (%s, %s, %s, %s, %s)"
-    mycursor.execute(query, (email_usuario, codigo_disciplina, titulo, conteudo, datetime.datetime.now()))
+    codigo_disciplina_separado = codigo_disciplina.split('/')[0]
+    mycursor.execute(query, (email_usuario, codigo_disciplina_separado, titulo, conteudo, datetime.datetime.now()))
     mydb.commit()
 
     raise HTTPException(status_code=201, detail="Resumo criado com sucesso")
